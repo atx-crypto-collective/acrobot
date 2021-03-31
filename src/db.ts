@@ -2,18 +2,16 @@ import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 
 dotenv.config();
-
-const uri = `mongodb+srv://admin:${process.env.MONGO_DB_PASSWORD}@cluster0.qq6rw.mongodb.net?retryWrites=true&w=majority`;
-
-const mongoDBClient = new MongoClient(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
 export interface Definition {
   item: string;
   definition: string;
 }
+
+const uri = `mongodb+srv://admin:${process.env.MONGO_DB_PASSWORD}@cluster0.qq6rw.mongodb.net?retryWrites=true&w=majority`;
+const mongoDBClient = new MongoClient(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 export async function getDefinition(item: string): Promise<Definition | undefined> {
   try {
