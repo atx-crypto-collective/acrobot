@@ -10,23 +10,27 @@ const mongoDBClient = new MongoClient(uri, {
   useUnifiedTopology: true,
 });
 
-export async function getDefinition() {
+export interface Definition {
+  item: string;
+  definition: string;
+}
+
+export async function getDefinition(item: string): Promise<Definition | undefined> {
   try {
     await mongoDBClient.connect();
 
     const database = mongoDBClient.db('acrobot');
     const definitions = database.collection('definitions');
 
-    return definitions.findOne({
-      // should not be hardcoded
-      item: 'LP',
-    });
+    // TODO: we should decide what to do with acronyms that have >1 definition
+    // For SPOCS, gonna keep it simple and just encourage people to add both definitions to the item
+    return definitions.findOne({ item });
   } catch (error) {
     console.log(error);
   }
 }
 
-export async function addDefinition() {
+export async function upsertDefinition() {
   try {
     await mongoDBClient.connect();
 
@@ -38,3 +42,4 @@ export async function addDefinition() {
     console.log(error);
   }
 }
+
