@@ -28,15 +28,15 @@ export async function getDefinition(item: string): Promise<Definition | undefine
   }
 }
 
-export async function upsertDefinition() {
+export async function upsertDefinition(item: string, definition: string) {
   try {
     await mongoDBClient.connect();
 
     const database = mongoDBClient.db('acrobot');
     const definitions = database.collection('definitions');
-
-    // add new definition to mongodb
+    await definitions.updateOne({ item }, { $set: { item, definition }}, { upsert: true });
   } catch (error) {
+    // TODO: Actually handle errors upstream
     console.log(error);
   }
 }

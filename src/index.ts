@@ -1,6 +1,6 @@
 import Discord, { Message } from 'discord.js';
 
-import { getDefinition } from './db';
+import { getDefinition, upsertDefinition } from './db';
 
 const discordClient = new Discord.Client();
 
@@ -22,23 +22,40 @@ discordClient.on('message', async function (message: Message) {
 
   switch (command) {
     // usage
-    case 'acro':
+    case 'acro': {
       const commands = COMMANDS.join(', ');
-      channel.send(`The commands I understand are ${commands}.`)
-      break;
+      return channel.send(`The commands I understand are ${commands}.`)
+    }
     // get definition
-    case 'def':
-      if (args.length !== 1) channel.send(`Boop! I don't know how to look that up. Try !def <term>`);
-      const [ item ] = args;
-      const result = await getDefinition(item);
+    case 'def': {
+      // validate usage
+      if (args.length !== 1) return channel.send(`Boop! I don't know how to look that up. Try !def <term>`);
+
+      // query db
+      const [item] = args;
+      const term = item.toUpperCase();
+      const result = await getDefinition(term);
+
+      // determine bot response
       if (!result) {
-        channel.send(`Boop! Don't have that in my dictionary yet, why don't you add it using !add <term> <definition>`)
+        return channel.send(`Boop! Don't have that in my dictionary yet, why don't you add it using !add <term> <definition>`);
       } else {
         const { item: term, definition } = result;
-        channel.send(`${term}: ${definition}`);
+        return channel.send(`${term}: ${definition}`);
       }
-      break;
-    case 'add':
+    }
+    case 'add': {
+      // validate usage
+      if (args.length < 2) return channel.send(`Boop! I don't know how to add this definition. Try !add <term> <definition>`);
+
+      // upsert item in db
+      const [item, ...definitionArray] = args;
+      const term = item.toUpperCase();
+      const definition = definitionArray.join(' ');
+      await upsertDefinition(term, definition);
+
+      return channel.send(`Woot! ${term} is now added to my dictionary!`)
+    }
     case 'edit':
     case 'del':
     default:
