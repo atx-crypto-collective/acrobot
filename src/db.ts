@@ -8,7 +8,7 @@ export interface Definition {
   definition: string;
 }
 
-const uri = `mongodb+srv://admin:${process.env.MONGO_DB_PASSWORD}@cluster0.qq6rw.mongodb.net?retryWrites=true&w=majority`;
+const uri = process.env.MONGO_DB_URI as string;
 const mongoDBClient = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
