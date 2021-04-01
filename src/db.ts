@@ -1,7 +1,8 @@
-import { MongoClient } from 'mongodb';
+import { DeleteWriteOpResultObject, MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
 export interface Definition {
   item: string;
   definition: string;
@@ -13,7 +14,9 @@ const mongoDBClient = new MongoClient(uri, {
   useUnifiedTopology: true,
 });
 
-export async function getDefinition(item: string): Promise<Definition | undefined> {
+export async function getDefinition(
+  item: string,
+): Promise<Definition | undefined> {
   try {
     await mongoDBClient.connect();
 
@@ -34,10 +37,30 @@ export async function upsertDefinition(item: string, definition: string) {
 
     const database = mongoDBClient.db('acrobot');
     const definitions = database.collection('definitions');
-    await definitions.updateOne({ item }, { $set: { item, definition }}, { upsert: true });
+
+    return definitions.updateOne(
+      { item },
+      { $set: { item, definition } },
+      { upsert: true },
+    );
   } catch (error) {
-    // TODO: Actually handle errors upstream
     console.log(error);
   }
 }
 
+export async function deleteDefinition(
+  item: string,
+): Promise<DeleteWriteOpResultObject | undefined> {
+  try {
+    await mongoDBClient.connect();
+
+    const database = mongoDBClient.db('acrobot');
+    const definitions = database.collection('definitions');
+
+    return definitions.deleteOne({
+      item,
+    });
+  } catch (error) {
+    console.log(error);
+  }
+}
