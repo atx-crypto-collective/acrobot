@@ -1,6 +1,13 @@
 import Discord, { Message } from 'discord.js';
+import markdownTable from 'markdown-table';
 
-import { deleteDefinition, getDefinition, upsertDefinition } from './db';
+import {
+  deleteDefinition,
+  getDefinition,
+  getList,
+  incrementLookupCount,
+  upsertDefinition,
+} from './db';
 
 const discordClient = new Discord.Client();
 
@@ -12,9 +19,10 @@ const COMMANDS = {
   DEF: 'def',
   DEL: 'del',
   EDIT: 'edit',
+  LIST: 'list',
 };
 
-const { ACRO, ADD, DEF, DEL, EDIT } = COMMANDS;
+const { ACRO, ADD, DEF, DEL, EDIT, LIST } = COMMANDS;
 const DEFINE = 'define';
 const DELETE = 'delete';
 
@@ -54,16 +62,18 @@ discordClient.on('message', async function (message: Message) {
       // query db
       const [item] = args;
       const term = item.toUpperCase();
-      const result = await getDefinition(term);
+      const definitionResult = await getDefinition(term);
+
+      await incrementLookupCount(term);
 
       // determine bot response
       // term is found in dictionary
-      if (result) {
-        const { item: term, definition } = result;
+      if (definitionResult) {
+        const { term, definition } = definitionResult;
         return channel.send(`\`${term}\`: ${definition}`);
       }
       // term is not in dictionary
-      else if (result === null) {
+      else if (definitionResult === null) {
         return channel.send(
           `Boop! Don't have that in my dictionary yet, why don't you add it using \`!add <term>: <definition>\`.`,
         );
@@ -82,6 +92,7 @@ discordClient.on('message', async function (message: Message) {
       }
 
       const [item, ...definitionArray] = args;
+      // removes : and - from the item ex: "ico:"" becomes "ico"
       const trimmedItem = item.replace(/[:-]$/, '');
       const term = trimmedItem.toUpperCase();
       const definition = definitionArray.join(' ');
@@ -96,7 +107,7 @@ discordClient.on('message', async function (message: Message) {
         );
       }
 
-      // upsert item in db
+      // upsert term in db
       const upsertResult = await upsertDefinition(term, definition);
 
       // term successfully added to db
@@ -126,7 +137,7 @@ discordClient.on('message', async function (message: Message) {
 
       // determine bot response
       if (definitionResult) {
-        // upsert item in db
+        // upsert term in db
         const upsertResult = await upsertDefinition(term, definition);
 
         // term successfully updated in db
@@ -175,6 +186,21 @@ discordClient.on('message', async function (message: Message) {
       return channel.send(
         `Boop! Something went wrong. Try deleting the term again.`,
       );
+    }
+    case LIST: {
+      const result = await getList();
+
+      if (result) {
+        const tuples = result.map(item => [item.term, item.definition]);
+
+        const table = markdownTable([['Terms', 'Definitions'], ...tuples]);
+
+        return channel.send(`Here is a list of my top words:
+          \`\`\`${table}\`\`\``);
+      }
+
+      // error thrown
+      return channel.send(`Boop! Something went wrong. Try again.`);
     }
     default:
       channel.send(

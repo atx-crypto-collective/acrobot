@@ -4,18 +4,20 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export interface Definition {
-  item: string;
+  term: string;
   definition: string;
+  lookupCount: number;
 }
 
 const uri = process.env.MONGO_DB_URI as string;
+
 const mongoDBClient = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
 export async function getDefinition(
-  item: string,
+  term: string,
 ): Promise<Definition | undefined> {
   try {
     await mongoDBClient.connect();
@@ -24,14 +26,45 @@ export async function getDefinition(
     const definitions = database.collection('definitions');
 
     // TODO: we should decide what to do with acronyms that have >1 definition
-    // For SPOCS, gonna keep it simple and just encourage people to add both definitions to the item
-    return definitions.findOne({ item });
+    // For SPOCS, gonna keep it simple and just encourage people to add both definitions to the term
+    return definitions.findOne({ term });
   } catch (error) {
     console.log(error);
   }
 }
 
-export async function upsertDefinition(item: string, definition: string) {
+export async function incrementLookupCount(term: string): Promise<void> {
+  try {
+    const database = mongoDBClient.db('acrobot');
+    const definitions = database.collection('definitions');
+
+    const { lookupCount } = await definitions.findOne({ term });
+
+    const newLookupCount = lookupCount + 1;
+
+    definitions.updateOne({ term }, { $set: { lookupCount: newLookupCount } });
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export async function getList(): Promise<Definition[] | undefined> {
+  try {
+    await mongoDBClient.connect();
+
+    const database = mongoDBClient.db('acrobot');
+    const definitions = database.collection('definitions');
+
+    // sort by descending (-1) and get first 50
+    const cursor = await definitions.find().sort({ lookupCount: -1 }).limit(50);
+
+    return cursor.toArray();
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export async function upsertDefinition(term: string, definition: string) {
   try {
     await mongoDBClient.connect();
 
@@ -39,8 +72,8 @@ export async function upsertDefinition(item: string, definition: string) {
     const definitions = database.collection('definitions');
 
     return definitions.updateOne(
-      { item },
-      { $set: { item, definition } },
+      { term },
+      { $set: { term, definition, lookupCount: 0 } },
       { upsert: true },
     );
   } catch (error) {
@@ -49,7 +82,7 @@ export async function upsertDefinition(item: string, definition: string) {
 }
 
 export async function deleteDefinition(
-  item: string,
+  term: string,
 ): Promise<DeleteWriteOpResultObject | undefined> {
   try {
     await mongoDBClient.connect();
@@ -58,7 +91,7 @@ export async function deleteDefinition(
     const definitions = database.collection('definitions');
 
     return definitions.deleteOne({
-      item,
+      term,
     });
   } catch (error) {
     console.log(error);

@@ -16,9 +16,11 @@
   "dependencies": {
     "discord.js": "^12.5.1",
     "dotenv": "^8.2.0",
+    "markdown-table": "^2.0.0",
     "mongodb": "^3.6.5"
   },
   "devDependencies": {
+    "@types/markdown-table": "^2.0.0",
     "@types/mongodb": "^3.6.10",
     "@types/node": "^14.14.37",
     "tsc-watch": "^4.2.9",
