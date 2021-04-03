@@ -38,6 +38,7 @@ export async function incrementLookupCount(term: string): Promise<void> {
     await mongoDBClient.connect();
     const database = mongoDBClient.db('acrobot');
     const definitions = database.collection('definitions');
+
     const definition = await definitions.findOne({ term });
     if (!definition) {
       return;
@@ -59,7 +60,7 @@ export async function getList(): Promise<Definition[] | undefined> {
     const database = mongoDBClient.db('acrobot');
     const definitions = database.collection('definitions');
     // sort by descending (-1) and get first 50
-    const cursor = await definitions.find().sort({ lookupCount: -1 }).limit(50);
+    const cursor = definitions.find().sort({ lookupCount: -1 }).limit(50);
 
     return cursor.toArray();
   } catch (error) {
@@ -67,14 +68,14 @@ export async function getList(): Promise<Definition[] | undefined> {
   }
 }
 
-export async function upsertDefinition(term: string, definition: string) {
+export async function upsertDefinition(term: string, definition: string, lookupCount?: number) {
   try {
     await mongoDBClient.connect();
     const database = mongoDBClient.db('acrobot');
     const definitions = database.collection('definitions');
     return definitions.updateOne(
       { term },
-      { $set: { term, definition, lookupCount: 0 } },
+      { $set: { term, definition, lookupCount: lookupCount ?? 0 } },
       { upsert: true },
     );
   } catch (error) {
@@ -89,6 +90,7 @@ export async function deleteDefinition(
     await mongoDBClient.connect();
     const database = mongoDBClient.db('acrobot');
     const definitions = database.collection('definitions');
+
     return definitions.deleteOne({
       term,
     });

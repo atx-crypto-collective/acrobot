@@ -138,7 +138,7 @@ discordClient.on('message', async function (message: Message) {
       // determine bot response
       if (definitionResult) {
         // upsert term in db
-        const upsertResult = await upsertDefinition(term, definition);
+        const upsertResult = await upsertDefinition(term, definition, definitionResult.lookupCount);
 
         // term successfully updated in db
         if (upsertResult?.modifiedCount) {
