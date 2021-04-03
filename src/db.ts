@@ -16,12 +16,12 @@ const mongoDBClient = new MongoClient(uri, {
   useUnifiedTopology: true,
 });
 
+
 export async function getDefinition(
   term: string,
 ): Promise<Definition | undefined> {
   try {
     await mongoDBClient.connect();
-
     const database = mongoDBClient.db('acrobot');
     const definitions = database.collection('definitions');
 
@@ -35,14 +35,19 @@ export async function getDefinition(
 
 export async function incrementLookupCount(term: string): Promise<void> {
   try {
+    await mongoDBClient.connect();
     const database = mongoDBClient.db('acrobot');
     const definitions = database.collection('definitions');
+    const definition = await definitions.findOne({ term });
+    if (!definition) {
+      return;
+    }
 
-    const { lookupCount } = await definitions.findOne({ term });
+    const { lookupCount } = definition;
 
     const newLookupCount = lookupCount + 1;
 
-    definitions.updateOne({ term }, { $set: { lookupCount: newLookupCount } });
+    await definitions.updateOne({ term }, { $set: { lookupCount: newLookupCount } });
   } catch (error) {
     console.log(error);
   }
@@ -51,10 +56,8 @@ export async function incrementLookupCount(term: string): Promise<void> {
 export async function getList(): Promise<Definition[] | undefined> {
   try {
     await mongoDBClient.connect();
-
     const database = mongoDBClient.db('acrobot');
     const definitions = database.collection('definitions');
-
     // sort by descending (-1) and get first 50
     const cursor = await definitions.find().sort({ lookupCount: -1 }).limit(50);
 
@@ -67,10 +70,8 @@ export async function getList(): Promise<Definition[] | undefined> {
 export async function upsertDefinition(term: string, definition: string) {
   try {
     await mongoDBClient.connect();
-
     const database = mongoDBClient.db('acrobot');
     const definitions = database.collection('definitions');
-
     return definitions.updateOne(
       { term },
       { $set: { term, definition, lookupCount: 0 } },
@@ -86,10 +87,8 @@ export async function deleteDefinition(
 ): Promise<DeleteWriteOpResultObject | undefined> {
   try {
     await mongoDBClient.connect();
-
     const database = mongoDBClient.db('acrobot');
     const definitions = database.collection('definitions');
-
     return definitions.deleteOne({
       term,
     });
