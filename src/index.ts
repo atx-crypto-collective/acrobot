@@ -33,6 +33,9 @@ discordClient.on('message', async function (message: Message) {
 
   if (!content.startsWith(botPrefix)) return;
 
+  const isBotCommand = Object.values(COMMANDS).some(command => content.startsWith(`${botPrefix}${command}`));
+  if (channel.type !== 'dm' && !isBotCommand) return;
+
   // strip da prefix
   const instructions = content.substring(1);
 
